@@ -319,21 +319,26 @@ function finish(){
   $("fullquiz").hidden=!(quiz&&sess.kind==="mistakes");
   show("summary");$(missed.length?"mistakes":"repeat").focus();
 }
+/* The donuts show each word's latest 1-5 rating (grey for not seen); the percent in the middle is the chosen
+   scheduler's own mastery score. */
+function latestCounts(list){ var m=cards(),n=[0,0,0,0,0,0]; list.forEach(function(c){ n[m[c.id]?m[c.id].r:0]++; }); return n; }
+var RATING_NAMES=["Not seen","1 · Not at all","2 · Barely","3 · Somewhat","4 · Mostly","5 · Perfectly"];
 function donut(list,size,label){
-  var m=mOf(list),tot=list.length,stops=[],acc=0;
-  m.cats.map(function(c){return [c.n,"var(--"+c.color+")"];}).concat([[m.unseen,"var(--unseen)"]]).forEach(function(p){
-    if(!p[0])return;var a0=acc/tot*100;acc+=p[0];stops.push(p[1]+" "+a0+"% "+(acc/tot*100)+"%");});
+  var pct=mOf(list).pct,n=latestCounts(list),tot=list.length,stops=[],acc=0;
+  [1,2,3,4,5,0].forEach(function(r){ if(!n[r])return; var a0=acc/tot*100;acc+=n[r];
+    stops.push((r?"var(--c"+r+")":"var(--unseen)")+" "+a0+"% "+(acc/tot*100)+"%"); });
   var d=document.createElement("div");d.className="donut "+size;d.style.background="conic-gradient("+stops.join(",")+")";
-  d.setAttribute("role","img");d.setAttribute("aria-label",m.pct+"% mastery: "+m.cats.map(function(c){return c.label+" "+c.n;}).join(", ")+", not seen "+m.unseen);
-  d.innerHTML="<div><div><b>"+m.pct+"%</b>"+(label?"<span>"+label+"</span>":"")+"</div></div>";
+  d.setAttribute("role","img");d.setAttribute("aria-label",pct+"% mastery. Latest ratings: "+[1,2,3,4,5].map(function(r){return r+": "+n[r];}).join(", ")+", not seen: "+n[0]);
+  d.innerHTML="<div><div><b>"+pct+"%</b>"+(label?"<span>"+label+"</span>":"")+"</div></div>";
   return d;
 }
 function renderMastery(){
   var T=$("mtotal");T.textContent="";T.appendChild(donut(pool(),"big","mastery"));
-  var m=mOf(pool()),L=$("mlegend");L.textContent="";
-  m.cats.map(function(c){return [c.label,c.n,"var(--"+c.color+")"];}).concat([["Not seen",m.unseen,"var(--unseen)"]]).forEach(function(p){
-    var li=document.createElement("li"),sw=document.createElement("i");sw.style.background=p[2];li.appendChild(sw);li.appendChild(document.createTextNode(p[0]+": "+p[1]));L.appendChild(li);});
-  $("mmethod").textContent=methodName();$("mhow").textContent=m.how;
+  var m=mOf(pool()),n=latestCounts(pool()),L=$("mlegend");L.textContent="";
+  [1,2,3,4,5,0].forEach(function(r){
+    var li=document.createElement("li"),sw=document.createElement("i");sw.style.background=r?"var(--c"+r+")":"var(--unseen)";
+    li.appendChild(sw);li.appendChild(document.createTextNode(RATING_NAMES[r]+": "+n[r]));L.appendChild(li);});
+  $("mmethod").textContent=methodName();$("mhow").textContent="Colours show each word’s latest rating. "+m.how;
   var S=$("msubs");S.textContent="";
   E.SETS.forEach(function(s){if(cfg.sets.indexOf(s.id)<0)return;
     var f=document.createElement("figure"),c=document.createElement("figcaption"),sm=document.createElement("small");
