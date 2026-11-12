@@ -265,7 +265,7 @@ function cramRate(z,r){
     z.streak = r===5 ? z.streak+1 : 0;
     if(z.streak>=3){ z.streak=0;
       if(z.ri===0){ z.ri++; cramAdvance(z); }
-      else { z.phase="review"; z.queue=shuffled(z.order.slice(0,z.ri+1)); } }
+      else { z.phase="review"; z.queue=shuffled(z.order.slice(0,z.ri)); } }
   } else if(z.phase==="review"){
     if(r===5){ z.queue.shift(); if(!z.queue.length){ z.ri++; cramAdvance(z); } }
   } else if(z.phase==="test"){
