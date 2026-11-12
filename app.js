@@ -24,16 +24,19 @@ try{var p0=JSON.parse(localStorage.getItem(PKEY)||"null");if(p0)prog=E.mergeProg
 try{var c0=JSON.parse(localStorage.getItem(CKEY)||"null");if(c0)["dir","sets","len","count","method"].forEach(function(k){if(c0[k]!=null)cfg[k]=c0[k];});}catch(e){}
 if(cfg.method!=="legacy"&&cfg.method!=="new"&&cfg.method!=="quiz"&&!E.SC.METHODS[cfg.method])cfg.method="new";
 cfg.sets=cfg.sets.filter(function(id){return E.SETS.some(function(s){return s.id===id;});});
-function saveLocal(){try{localStorage.setItem(PKEY,JSON.stringify(prog));localStorage.setItem(CKEY,JSON.stringify(cfg));}catch(e){}}
+/* Cram Mode is a temporary mode: it isn't saved, and the scheduler picked before it stays underneath for mastery. */
+var baseMethod=cfg.method;
+function mm(){return cfg.method==="cram"?baseMethod:cfg.method;}
+function saveLocal(){try{localStorage.setItem(PKEY,JSON.stringify(prog));localStorage.setItem(CKEY,JSON.stringify(Object.assign({},cfg,{method:mm()})));}catch(e){}}
 function cards(){return prog[cfg.dir];}
 function legacy(){return prog.lg[cfg.dir];}
 function ext(){return {log:prog.log[cfg.dir],lb:prog.lb[cfg.dir]};}
 function pool(){return E.ALL.filter(function(c){return cfg.sets.indexOf(c.set.id)>=0;});}
 function seenIn(list){var m=cards();return list.filter(function(c){return m[c.id];}).length;}
 /* Mastery in the chosen scheduler's own terms, rebuilt from the review history (engine.js / schedulers.js). */
-function mOf(list){return E.mastery(cfg.method,cards(),{log:prog.log[cfg.dir],lb:prog.lb[cfg.dir]},list,Date.now());}
+function mOf(list){return E.mastery(mm(),cards(),{log:prog.log[cfg.dir],lb:prog.lb[cfg.dir]},list,Date.now());}
 function mastery(list){return mOf(list).pct;}
-function methodName(){return cfg.method==="new"?"Default (FSRS-6)":cfg.method==="legacy"?"Legacy":cfg.method==="quiz"?"Quiz mode":E.SC.METHODS[cfg.method].name;}
+function methodName(){var m=mm();return m==="new"?"Default (FSRS-6)":m==="legacy"?"Legacy":m==="quiz"?"Quiz mode":E.SC.METHODS[m].name;}
 function segBar(list){ // the method's categories as one stacked bar
   var m=mOf(list),bar=document.createElement("i");
   m.cats.forEach(function(c){ if(!c.n) return; var u=document.createElement("u");u.style.width=(100*c.n/list.length)+"%";u.style.background="var(--"+c.color+")";u.title=c.label+": "+c.n;bar.appendChild(u); });
@@ -167,9 +170,10 @@ function renderHome(){
   [].forEach.call(document.getElementsByName("len"),function(r){r.checked=r.value===cfg.len;});
   $("count").value=cfg.count;$("warn").hidden=true;
   renderMethods();
-  var q=cfg.method==="quiz";$("lenlock").hidden=!q;document.querySelector(".len").classList.toggle("locked",q);
+  var cr=cfg.method==="cram",q=cfg.method==="quiz"||cr;$("lenlock").hidden=!q;
+  $("lenlock").textContent=cr?"Cram Mode runs until you finish the test, so there is no length to choose.":"Quiz mode always gives you every word in your chosen sets once, so the length is set to match.";document.querySelector(".len").classList.toggle("locked",q);
   [].forEach.call(document.querySelectorAll('#lenpanel input'),function(x){x.disabled=q;});
-  $("bubbleRule").textContent=q?"Every word once, in a random order, then you can study your mistakes.":cfg.method==="legacy"?"New words come in every few cards.":"I bring each word back right when you’re about to forget it.";
+  $("bubbleRule").textContent=cr?"Repeat each word until it’s perfect, then prove it in the test.":q?"Every word once, in a random order, then you can study your mistakes.":cfg.method==="legacy"?"New words come in every few cards.":"I bring each word back right when you’re about to forget it.";
   $("overall").textContent=dirName(cfg.dir)+": "+seenIn(E.ALL)+" of "+E.ALL.length+" words seen, "+mastery(E.ALL)+"% overall mastery with "+methodName()+".";
 }
 $("dirs").onclick=function(e){var b=e.target.closest("button");if(!b)return;cfg.dir=b.dataset.dir;saveLocal();renderHome();};
@@ -194,6 +198,9 @@ var MINFO=[
  {id:"quiz",label:"Quiz mode",html:
   '<p><b>What it does.</b> No formula: every word in your chosen sets comes up exactly once, in a random order, like a practice test. The session is always the size of your sets. Rate each word from 1 to 5 as usual. At the end, Study mistakes gives you every word you rated below 5, shuffled, and you can keep studying the ones you still miss.</p>'+
   '<p><b>Why.</b> It checks every word before a real quiz and shows exactly which ones you don’t know yet. Your answers still count as reviews for the other schedulers.</p>'},
+ {id:"cram",label:"Cram Mode",html:
+  '<p><b>What it does.</b> Each word repeats until you rate it 5 three times in a row. Here the 1 to 5 buttons mean how <i>correct</i> you were. After every round but the first, all the words you’ve finished come back in a random order, each until you get a 5. When every round is done, the test shuffles all the words into groups; anything under 5 repeats until you get a 5, and you finish when a whole group is rated 5 on the first try. It runs until then, so there is no card count.</p>'+
+  '<p><b>Why.</b> It’s for cramming a set right before a quiz. Cram Mode isn’t remembered: the next visit starts on your usual scheduler. Your ratings still count as reviews for the others.</p>'},
  {id:"sm2",label:"SM-2",html:
   '<p><b>What it does.</b> Piotr Woźniak’s 1987 algorithm, the first computer spaced-repetition scheduler, from '+L("https://www.supermemo.com/en/archives1990-2015/english/ol/sm2","his 1990 description")+' and his SuperMemo 2 source code. After a pass a word comes back in 1 day, then 6 days, then each interval times the word’s easiness factor, which starts at 2.5, drops when you struggle and never goes below 1.3. A 1 or 2 restarts it at 1 day. Anything you rate below 4 comes back again the same day until you give it a 4 or 5.</p>'+
   '<p><b>Why.</b> It’s the ancestor of nearly every flashcard scheduler, including Anki’s.</p>'},
@@ -235,11 +242,11 @@ function renderMethods(){
     M.appendChild(d);
   });
   var box=$("minfo"), m=MINFO.filter(function(x){return x.id===openInfo;})[0];
-  box.hidden=!m; if(m) box.innerHTML="<h3>"+esc(m.title||m.label)+"</h3>"+m.html+"<p><b>Mastery.</b> "+esc(E.masteryInfo(m.id).how)+"</p>";
+  box.hidden=!m; if(m) box.innerHTML="<h3>"+esc(m.title||m.label)+"</h3>"+m.html+"<p><b>Mastery.</b> "+esc(E.masteryInfo(m.id==="cram"?baseMethod:m.id).how)+"</p>";
 }
 $("methods").onclick=function(e){
   var b=e.target.closest(".mbtn"),i=e.target.closest(".ibtn");
-  if(b){cfg.method=b.dataset.m;saveLocal();var m=MINFO.filter(function(x){return x.id===cfg.method;})[0];
+  if(b){cfg.method=b.dataset.m;if(cfg.method!=="cram")baseMethod=cfg.method;saveLocal();var m=MINFO.filter(function(x){return x.id===cfg.method;})[0];
     if(m.showOnPick) openInfo=m.id; else if(openInfo==="legacy") openInfo=null;
     renderMethods();renderHome();}
   if(i){openInfo=openInfo===i.dataset.i?null:i.dataset.i;renderMethods();}
@@ -251,11 +258,18 @@ var sess=null,cur=null,revealed=false,shownAt=0;
 /* kind: "full" (the chosen sets) or "mistakes" (Quiz mode: a list of missed words) */
 function startSession(list,kind){
   var p=Array.isArray(list)?list:pool();
-  sess=E.newSession(p,cfg.len==="count"?Math.max(1,cfg.count|0):0,cfg.method);sess.kind=kind==="mistakes"?"mistakes":"full";
+  sess=E.newSession(p,cfg.len==="count"&&cfg.method!=="cram"?Math.max(1,cfg.count|0):0,cfg.method);sess.kind=kind==="mistakes"?"mistakes":"full";
   show("study");next();
+}
+var RATE_QS=$("reveal").querySelector("p.ask"),RATE_SMALL=[].map.call($("rate").querySelectorAll("small"),function(x){return x.textContent;});
+function cramPhaseText(z,n){
+  if(z.phase==="round")return "Round "+(z.ri+1)+" of "+n+": "+z.streak+" of 3 perfect in a row";
+  if(z.phase==="review")return "Review after round "+(z.ri+1)+": "+z.queue.length+" left, each until a 5";
+  return "Test, group "+z.groups+": "+z.gq.length+" of "+n+" left";
 }
 function next(){
   if(sess.target&&sess.done>=sess.target){finish();return;}
+  if(sess.cram&&sess.cram.phase==="done"){finish();return;}
   cur=E.pick(sess,cards(),Date.now(),legacy(),ext());shownAt=Date.now();revealed=false;
   var c=cur.card,toLatin=cfg.dir==="el";
   $("card").className="card "+c.set.side;
@@ -265,6 +279,13 @@ function next(){
   $("hint").textContent=toLatin?"a- gives ā · Enter shows the answer":"Enter shows the answer";
   $("type").value="";$("type").lang=toLatin?"la":"en";
   $("ask").hidden=false;$("reveal").hidden=true;
+  var cr=!!sess.cram;
+  RATE_QS.firstChild.textContent=cr?"How correct were you? ":"How well did you know it? ";
+  [].forEach.call($("rate").querySelectorAll("small"),function(x,i){x.textContent=cr?["Wrong","Barely","Partly","Mostly","Fully correct"][i]:RATE_SMALL[i];});
+  if(cr){var z=sess.cram,n=sess.pool.length;
+    $("countlbl").textContent=cramPhaseText(z,n);
+    $("bar").style.width=(z.phase==="round"?100*(z.ri+z.streak/3)/(n+1):z.phase==="review"?100*(z.ri+1)/(n+1):100*(n+(1-z.gq.length/n))/(n+1))+"%";
+    renderSide();$("type").focus();return;}
   $("countlbl").textContent=sess.target?"Card "+(sess.done+1)+" of "+sess.target:"Card "+(sess.done+1)+" · endless";
   $("bar").style.width=(sess.target?100*sess.done/sess.target:100*E.seenCount(sess)/sess.pool.length)+"%";
   renderSide();$("type").focus();
@@ -277,7 +298,7 @@ function renderSide(){
   var L=$("legend");L.textContent="";
   for(i=1;i<=5;i++){var li=document.createElement("li"),sw=document.createElement("i");sw.className="r"+i;li.appendChild(sw);li.appendChild(document.createTextNode(i+": "+n[i]));L.appendChild(li);}
   $("seenn").textContent=E.seenCount(sess)+" / "+sess.pool.length;
-  $("cyclelbl").textContent=sess.method==="quiz"?(sess.kind==="mistakes"?"Study mistakes: each missed word once, in a random order.":"Quiz mode: every word once, in a random order."):sess.method==="legacy"?"Legacy scheduler: a new word comes at least every fifth card."
+  $("cyclelbl").textContent=sess.method==="cram"?"Cram Mode: rounds, then the test. It ends when a whole group is rated 5 on the first try.":sess.method==="quiz"?(sess.kind==="mistakes"?"Study mistakes: each missed word once, in a random order.":"Quiz mode: every word once, in a random order."):sess.method==="legacy"?"Legacy scheduler: a new word comes at least every fifth card."
     :sess.method==="leitner"?"Leitner: each compartment is worked through when it fills up."
     :(sess.method==="new"?"FSRS-6":E.SC.METHODS[sess.method].name)+": cards come back when they’re due, and new words come in whenever nothing is due.";
 }
@@ -303,18 +324,23 @@ function finish(){
   var max=Math.max.apply(null,sess.ratings.slice(1)),h=$("hist");h.textContent="";
   for(i=1;i<=5;i++){var d=document.createElement("div");d.className="r"+i;d.style.height=(max?100*sess.ratings[i]/max:0)+"%";var s=document.createElement("span");s.textContent=sess.ratings[i];d.appendChild(s);h.appendChild(d);}
   $("sumline").textContent=dirName(cfg.dir)+" · "+cfg.sets.length+(cfg.sets.length===1?" set":" sets")+" ("+pool().length+" words)"+
-    (sess.method==="quiz"?(sess.kind==="mistakes"?" · Study mistakes: "+sess.pool.length+" words":" · Quiz mode"):"");
+    (sess.method==="cram"?" · Cram Mode":sess.method==="quiz"?(sess.kind==="mistakes"?" · Study mistakes: "+sess.pool.length+" words":" · Quiz mode"):"");
   renderMastery();
   var left=sess.pool.length-seenIn(sess.pool);
-  $("sleft").textContent=left?left+" of "+sess.pool.length+" words in these sets haven’t been introduced yet. "+(sess.method==="legacy"?"The Legacy scheduler brings one in at least every fifth card.":sess.method==="leitner"?"The Leitner box adds one whenever its first compartment has room.":"New words come in whenever nothing is due.")
+  if(!sess.cram)$("sleft").textContent=left?left+" of "+sess.pool.length+" words in these sets haven’t been introduced yet. "+(sess.method==="legacy"?"The Legacy scheduler brings one in at least every fifth card.":sess.method==="leitner"?"The Leitner box adds one whenever its first compartment has room.":"New words come in whenever nothing is due.")
     :"Every word in these sets has been introduced. Repeating brings back whatever is due, weakest first.";
   var quiz=sess.method==="quiz", missed=quiz?E.missedIn(sess):[];
+  if(sess.cram){
+    $("sleft").textContent=sess.cram.phase==="done"?"Test passed: "+sess.cram.groups+(sess.cram.groups===1?" group":" groups")+" in the test, and every word in the last one was a 5 on the first try."
+      :"You ended Cram Mode before the test was passed.";
+    $("repeat").textContent="Cram again";
+  }
   if(quiz){
     var right=sess.done-missed.length;
     $("sleft").textContent=(sess.done<sess.pool.length?"You answered "+sess.done+" of "+sess.pool.length+" words. ":"")+
       (missed.length?"You rated "+right+" of "+sess.done+" words a 5. Study mistakes gives you the "+missed.length+" you rated lower, in a new random order.":"You rated every word a 5.");
     $("repeat").textContent=sess.kind==="mistakes"?"Again":"Try again";
-  } else $("repeat").textContent="Repeat session";
+  } else if(!sess.cram) $("repeat").textContent="Repeat session";
   $("mistakes").hidden=!missed.length; $("mistakes").textContent="Study mistakes ("+missed.length+")"; sess.missed=missed;
   $("fullquiz").hidden=!(quiz&&sess.kind==="mistakes");
   show("summary");$(missed.length?"mistakes":"repeat").focus();

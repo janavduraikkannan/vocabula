@@ -248,8 +248,38 @@ function pickAdded(sess,cards,now,ext){
   return {card:pool[0],kind:"new"};
 }
 
+/* ---------- Cram Mode ----------
+   One word at a time: the same card repeats until it is rated 5 three times in a row, which completes that word's
+   round. After every round but the first, all completed words come back in a random order (each repeating until it
+   gets one 5) before the next round starts. When every round is done comes the test: groups, each one a fresh shuffle
+   of every word. A rating below 5 repeats the card until it gets a 5; the test is complete when a whole group is
+   rated 5 on the first try (otherwise another group starts). */
+function shuffled(a){ var o=a.slice(); for(var i=o.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), t=o[i]; o[i]=o[j]; o[j]=t; } return o; }
+function cramNew(pool){ var z={phase:"round",order:shuffled(pool),ri:0,streak:0,queue:[],groups:0,gq:[],bad:false,first:true};
+  return z; }
+function cramCard(z){ return z.phase==="round"?z.order[z.ri]:z.phase==="review"?z.queue[0]:z.gq[0]; }
+function cramGroup(z){ z.phase="test"; z.groups++; z.gq=shuffled(z.order); z.bad=false; z.first=true; }
+function cramAdvance(z){ if(z.ri>=z.order.length) cramGroup(z); else { z.phase="round"; z.streak=0; } }
+function cramRate(z,r){
+  if(z.phase==="round"){
+    z.streak = r===5 ? z.streak+1 : 0;
+    if(z.streak>=3){ z.streak=0;
+      if(z.ri===0){ z.ri++; cramAdvance(z); }
+      else { z.phase="review"; z.queue=shuffled(z.order.slice(0,z.ri+1)); } }
+  } else if(z.phase==="review"){
+    if(r===5){ z.queue.shift(); if(!z.queue.length){ z.ri++; cramAdvance(z); } }
+  } else if(z.phase==="test"){
+    if(r===5){ z.gq.shift(); z.first=true; if(!z.gq.length){ if(z.bad) cramGroup(z); else z.phase="done"; } }
+    else { z.bad=true; z.first=false; }
+  }
+}
+
 /* ---------- the session ---------- */
 function newSession(pool,target,method){
+  if(method==="cram"){
+    return {pool:pool,cram:cramNew(pool),target:0,method:"cram",done:0,shown:{},last:null,newSeen:0,
+      ratings:[0,0,0,0,0,0],latest:{},sinceNew:0,lastWasNew:false};
+  }
   if(method==="quiz"){ // Quiz mode: every word once, in one random order, no formula
     var order=pool.slice(); for(var i=order.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), t=order[i]; order[i]=order[j]; order[j]=t; }
     return {pool:pool,order:order,target:pool.length,method:"quiz",done:0,shown:{},last:null,newSeen:0,
@@ -259,6 +289,7 @@ function newSession(pool,target,method){
     ratings:[0,0,0,0,0,0],latest:{},sinceNew:0,lastWasNew:false};
 }
 function pick(sess,cards,now,lg,ext){
+  if(sess.method==="cram"){ var cc=cramCard(sess.cram); return {card:cc,kind:(cards[cc.id]||(ext&&ext.log[cc.id]))?"due":"new"}; }
   if(sess.method==="quiz"){ var q=sess.order[Math.min(sess.done,sess.order.length-1)];
     return {card:q,kind:(cards[q.id]||(ext&&ext.log[q.id]))?"due":"new"}; }
   if(sess.method==="legacy") return pickLegacy(sess,cards,lg);
@@ -281,6 +312,7 @@ function rate(sess,cards,card,rating,now,kind,lg,ext,dur){
   if(lg) lgSchedule(lg,cards,card.id,rating,now); // legacy record first: it reads the card's state before this rating
   if(ext){ logAdd(ext,cards,card.id,rating,now,dur); SC.lbUpdate(ext.lb,card.id,rating,now); } // log before the FSRS-6 record changes
   var rec=review(cards[card.id],rating,now); cards[card.id]=rec;
+  if(sess.cram) cramRate(sess.cram,rating);
   sess.done++; sess.ratings[rating]++; sess.latest[card.id]=rating; sess.shown[card.id]=1; sess.last=card.id;
   if(kind==="new"){ sess.newSeen++; sess.sinceNew=0; sess.lastWasNew=true; } else { sess.sinceNew++; sess.lastWasNew=false; }
   return rec;
