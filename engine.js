@@ -316,8 +316,17 @@ function cramRate(z,r){
   }
 }
 
+/* ---------- Review Mode ----------
+   Quiz mode's every-word-once order plus Cram Mode's immediate retry: a card rated below 5 comes straight back until it
+   gets a 5, then the next card follows. The session is over once every word has been rated a 5. */
+function reviewNew(pool){ return {queue:shuffled(pool)}; }
+
 /* ---------- the session ---------- */
 function newSession(pool,target,method){
+  if(method==="review"){
+    return {pool:pool,review:reviewNew(pool),target:0,method:"review",done:0,shown:{},last:null,newSeen:0,
+      ratings:[0,0,0,0,0,0],latest:{},sinceNew:0,lastWasNew:false};
+  }
   if(method==="cram"){
     return {pool:pool,cram:cramNew(pool),target:0,method:"cram",done:0,shown:{},last:null,newSeen:0,
       ratings:[0,0,0,0,0,0],latest:{},sinceNew:0,lastWasNew:false};
@@ -331,6 +340,7 @@ function newSession(pool,target,method){
     ratings:[0,0,0,0,0,0],latest:{},sinceNew:0,lastWasNew:false};
 }
 function pick(sess,cards,now,lg,ext){
+  if(sess.method==="review"){ var rc=sess.review.queue[0]; return {card:rc,kind:(cards[rc.id]||(ext&&ext.log[rc.id]))?"due":"new"}; }
   if(sess.method==="cram"){ var cc=cramCard(sess.cram); return {card:cc,kind:(cards[cc.id]||(ext&&ext.log[cc.id]))?"due":"new"}; }
   if(sess.method==="quiz"){ var q=sess.order[Math.min(sess.done,sess.order.length-1)];
     return {card:q,kind:(cards[q.id]||(ext&&ext.log[q.id]))?"due":"new"}; }
@@ -355,6 +365,7 @@ function rate(sess,cards,card,rating,now,kind,lg,ext,dur){
   if(ext){ logAdd(ext,cards,card.id,rating,now,dur); SC.lbUpdate(ext.lb,card.id,rating,now); } // log before the FSRS-6 record changes
   var rec=review(cards[card.id],rating,now); cards[card.id]=rec;
   if(sess.cram) cramRate(sess.cram,rating);
+  if(sess.review&&rating===5) sess.review.queue.shift();
   sess.done++; sess.ratings[rating]++; sess.latest[card.id]=rating; sess.shown[card.id]=1; sess.last=card.id;
   if(kind==="new"){ sess.newSeen++; sess.sinceNew=0; sess.lastWasNew=true; } else { sess.sinceNew++; sess.lastWasNew=false; }
   return rec;
