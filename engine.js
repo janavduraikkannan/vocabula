@@ -250,24 +250,34 @@ function pickAdded(sess,cards,now,ext){
 
 /* ---------- Cram Mode ----------
    One word at a time: the same card repeats until it is rated 5 three times in a row, which completes that word's
-   round. After every round but the first, all completed words come back in a random order (each repeating until it
-   gets one 5) before the next round starts. When every round is done comes the test: groups, each one a fresh shuffle
-   of every word. A rating below 5 repeats the card until it gets a 5; the test is complete when a whole group is
-   rated 5 on the first try (otherwise another group starts). */
+   round. Finished words then come back in spaced reviews: a word is reviewed after the next round, then after 2 more
+   rounds, then 4, then 8 (CRAM_GAPS), and then not again until the test. Each review card repeats until it gets a 5;
+   a 5 on the first try moves the word to its next gap, anything lower sends it back to the first gap. After each
+   round, the words due then come back in a random order before the next round starts (no review if none are due).
+   When every round is done comes the test: groups, each one a fresh shuffle of every word. A rating below 5 repeats
+   the card until it gets a 5; the test is complete when a whole group is rated 5 on the first try (otherwise another
+   group starts). */
+var CRAM_GAPS=[1,2,4,8];
 function shuffled(a){ var o=a.slice(); for(var i=o.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), t=o[i]; o[i]=o[j]; o[j]=t; } return o; }
-function cramNew(pool){ var z={phase:"round",order:shuffled(pool),ri:0,streak:0,queue:[],groups:0,gq:[],bad:false,first:true};
-  return z; }
+/* due[i]: the round after which word i is next reviewed (-1 once it has had all its reviews); step[i]: its place in CRAM_GAPS. */
+function cramNew(pool){ return {phase:"round",order:shuffled(pool),ri:0,streak:0,queue:[],due:[],step:[],groups:0,gq:[],bad:false,first:true}; }
 function cramCard(z){ return z.phase==="round"?z.order[z.ri]:z.phase==="review"?z.queue[0]:z.gq[0]; }
 function cramGroup(z){ z.phase="test"; z.groups++; z.gq=shuffled(z.order); z.bad=false; z.first=true; }
-function cramAdvance(z){ if(z.ri>=z.order.length) cramGroup(z); else { z.phase="round"; z.streak=0; } }
+function cramAdvance(z){ z.ri++; if(z.ri>=z.order.length) cramGroup(z); else { z.phase="round"; z.streak=0; } }
 function cramRate(z,r){
   if(z.phase==="round"){
     z.streak = r===5 ? z.streak+1 : 0;
-    if(z.streak>=3){ z.streak=0;
-      if(z.ri===0){ z.ri++; cramAdvance(z); }
-      else { z.phase="review"; z.queue=shuffled(z.order.slice(0,z.ri)); } }
+    if(z.streak>=3){ z.streak=0; var k=z.ri;
+      z.due[k]=k+CRAM_GAPS[0]; z.step[k]=0;
+      z.queue=shuffled(z.order.slice(0,k).filter(function(c,i){ return z.due[i]===k; }));
+      if(z.queue.length){ z.phase="review"; z.first=true; } else cramAdvance(z); }
   } else if(z.phase==="review"){
-    if(r===5){ z.queue.shift(); if(!z.queue.length){ z.ri++; cramAdvance(z); } }
+    var i=z.order.indexOf(z.queue[0]);
+    if(r===5){
+      if(z.first){ z.step[i]++; z.due[i]=z.step[i]<CRAM_GAPS.length?z.ri+CRAM_GAPS[z.step[i]]:-1; }
+      else { z.step[i]=0; z.due[i]=z.ri+CRAM_GAPS[0]; }
+      z.queue.shift(); z.first=true; if(!z.queue.length) cramAdvance(z);
+    } else z.first=false;
   } else if(z.phase==="test"){
     if(r===5){ z.gq.shift(); z.first=true; if(!z.gq.length){ if(z.bad) cramGroup(z); else z.phase="done"; } }
     else { z.bad=true; z.first=false; }
@@ -380,5 +390,5 @@ function mastery(method,cards,ext,list,now){
 }
 
 var VOCAB_ENGINE={missedIn:missedIn,mastery:mastery,masteryInfo:masteryInfo,SETS:SETS,ALL:ALL,W:W,GAP:GAP,pickLegacy:pickLegacy,SC:SC,logGet:logGet,dueOf:dueOf,GRADE:GRADE,review:review,recall:recall,isDue:isDue,
-  newSession:newSession,pick:pick,rate:rate,seenCount:seenCount,blankProgress:blankProgress,mergeProgress:mergeProgress,DAY:DAY};
+  CRAM_GAPS:CRAM_GAPS,newSession:newSession,pick:pick,rate:rate,seenCount:seenCount,blankProgress:blankProgress,mergeProgress:mergeProgress,DAY:DAY};
 if(typeof module!=="undefined") module.exports=VOCAB_ENGINE; else window.E=VOCAB_ENGINE;
