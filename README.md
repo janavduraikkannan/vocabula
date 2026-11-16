@@ -1,6 +1,6 @@
 # Vocābula
 
-Latin vocab flashcards for Latin 1 (Vocab Quizzes 1 to 4, door and window sets), part of [Linguae](https://janavduraikkannan.github.io/linguae/).
+Latin vocab flashcards for Latin 1 (Vocab Quizzes 1 to 5, door and window sets), part of [Linguae](https://janavduraikkannan.github.io/linguae/).
 
 Live at https://janavduraikkannan.github.io/vocabula/
 

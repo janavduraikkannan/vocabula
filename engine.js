@@ -136,7 +136,39 @@ var SETS = [
   ["septendecim","seventeen"],
   ["duodēvīgintī","eighteen","Literally: two from twenty"],
   ["ūndēvīgintī","nineteen","Literally: one from twenty"],
-  ["vīgintī","twenty"]]}
+  ["vīgintī","twenty"]]},
+ {id:"5d", quiz:5, side:"door", cards:[
+  ["aeger, aegra, aegrum","unwell or distressed; sick, unwell, troubled"],
+  ["aegrē","with distress or difficulty, painfully, reluctantly"],
+  ["mēnsa, -ae, f.","table, dish, course (of a meal)"],
+  ["nihil","nothing, none"],
+  ["puer, puerī, m.","boy, child"],
+  ["puella, -ae, f.","girl","Feminine form of puerulus, “little boy”"],
+  ["semper","always"],
+  ["silva, -ae, f.","forest"],
+  ["umbra, -ae, f.","shade, shadow, ghost"],
+  ["castrum -ī n.; pl. castra, -ōrum","fortress; (pl.) camp"],
+  ["sīgnum -ī n.","sign; standard, mark"],
+  ["vīta -ae f.","life"],
+  ["vīvere (-ō), vīxisse","to be alive; live","No perfect passive participle"],
+  ["nōtus -a -um","well-known"],
+  ["littera -ae f.","(sg.) letter (of the alphabet); (pl.) letter (epistle); literature"]]},
+ {id:"5w", quiz:5, side:"window", cards:[
+  ["ager, agrī, m.","field, country, territory"],
+  ["agricola, -ae, m.","farmer","From ager + colere: field-tiller"],
+  ["modus, -ī, m.","method, means, measure, rule"],
+  ["modo","only, merely, just","Originally the ablative of modus: in measure"],
+  ["pugna, -ae, f.","battle, fight"],
+  ["pugnāre, pugnāvisse, pugnātum","to fight"],
+  ["pulcher, pulchra, pulchrum","beautiful, handsome"],
+  ["rīpa, -ae, f.","bank, shore"],
+  ["esse (sum), fuisse, futūrus","to be; exist"],
+  ["abesse (absum), āfuisse","to be away; absent"],
+  ["adesse (adsum), affuisse","to be present"],
+  ["dēesse (dēsum), dēfuisse","to be lacking"],
+  ["interesse (intersum), interfuisse","to be between; take part in; interest"],
+  ["prōdesse (prōsum), prōfuisse","to be of use; do good, help (+ dat.)"],
+  ["superesse (supersum), superfuisse","to remain, survive; be superfluous (to)"]]}
 ];
 var ALL = [];
 SETS.forEach(function(s){ s.cards = s.cards.map(function(c,i){
