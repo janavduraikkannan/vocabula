@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later AND CC-BY-SA-4.0
+ * Copyright (C) 2026 janavduraikkannan and Linguae contributors */
 /* Vocābula engine: the word lists, the two schedulers (New: FSRS-6, Legacy: the first version) and the card picker.
    Runs in the browser and in Node (for tests), so it touches no page elements.
 

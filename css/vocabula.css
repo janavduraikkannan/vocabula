@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later
+ * Copyright (C) 2026 janavduraikkannan and Linguae contributors */
 /* ---------- Vocābula's styles (the page is index.html; the scripts are app.js, engine.js and schedulers.js) ---------- */
 :root{
   --latin:"Gentium Book Plus","Gentium Plus",Georgia,"Times New Roman",serif;

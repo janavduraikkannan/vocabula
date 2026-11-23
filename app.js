@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later
+ * Copyright (C) 2026 janavduraikkannan and Linguae contributors */
 /* Vocābula page: home, study and summary screens, saving, and the shared Verba account. */
 (function(){
 "use strict";

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later
+ * Copyright (C) 2026 janavduraikkannan and Linguae contributors */
 /* Vocābula: the added schedulers. Each one is built from its original source, noted beside it.
 
    Every rating is kept in a per-card review log (time, 1-5 rating, milliseconds taken). Each scheduler below works

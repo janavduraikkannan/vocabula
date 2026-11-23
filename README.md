@@ -24,4 +24,26 @@ Live at https://janavduraikkannan.github.io/vocabula/
 - **Accounts.** The same account as Verba and the other Linguae sites (`verba-account` in the browser). Progress is saved in `vocab/{account key}` in Firestore project `verba-791ca`, never in the account document. No leaderboard.
 - **Firestore security rules** live only in [`firestore.rules` in the linguae repository](https://github.com/janavduraikkannan/linguae/blob/main/firestore.rules). After changing them there, publish them in the Firebase console.
 
-Files: `index.html` (the page), `css/vocabula.css` (styles), `app.js` (screens, saving, account), `engine.js` (word lists, Default and Legacy, queue and saving), `schedulers.js` (the other ten), `vendor/` (ts-fsrs, ebisu.js, srs-benchmark weights); both run in Node for tests. Fēlix art from Verba; icons from game-icons.net (CC BY 3.0).
+Files: `index.html` (the page), `css/vocabula.css` (styles), `app.js` (screens, saving, account), `engine.js` (word lists, Default and Legacy, queue and saving), `schedulers.js` (the other ten), `vendor/` (ts-fsrs, ebisu.js, srs-benchmark weights); both run in Node for tests. Fēlix art from Verba; icons from game-icons.net (CC BY 3.0, see `img/CREDITS.md`).
+
+## Credits
+
+- Icons: [game-icons.net](https://game-icons.net) (CC BY 3.0): centurion helmet and Greek temple by Delapouite, scroll by Lorc (see `img/CREDITS.md`).
+- Fēlix art comes from [Verba](https://github.com/janavduraikkannan/verba).
+- Scheduling algorithms and libraries are credited above and in `vendor/NOTICE.md`.
+
+## License
+
+- **Code:** [GNU Affero General Public License v3.0 or later](LICENSE) (`AGPL-3.0-or-later`). Source files carry SPDX headers. If you run a modified version as a network service, the AGPL requires you to offer your users its source.
+- **Content:** [Creative Commons Attribution-ShareAlike 4.0 International](LICENSE-CONTENT) (`CC-BY-SA-4.0`). That means the artwork drawn for the project, the documentation, and the word lists, lesson text, grammar course data and question banks, including those that live inside `.js` files. A file that mixes code and content says `AGPL-3.0-or-later AND CC-BY-SA-4.0` in its SPDX header; a file that is only content says `CC-BY-SA-4.0`.
+- **Contributing:** contributions need a signed CLA. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**Acknowledgement.** The word lists are based on the Latin 1 class's vocabulary quizzes (quizzes 1 to 5, door and window sets), used with the teacher's permission.
+
+### Exceptions
+
+These are **not** covered by the licenses above and keep their own terms:
+
+- **Icons** (the game-icons.net icons in `index.html`) are under CC BY 3.0 and **stay under CC BY 3.0**; they are not relicensed. Authors are listed in `img/CREDITS.md`.
+- **Vendored libraries** in `vendor/` keep their own licenses: ts-fsrs (MIT) and ebisu.js (Unlicense). The pretrained **srs-benchmark weights** (`vendor/srs-benchmark-weights.js`) have **no clear upstream license** and are not covered by the AGPL grant. See `vendor/NOTICE.md`. Code ported from fsrs-rs (BSD 3-Clause) and Anki (AGPL-3.0-or-later) keeps their licenses.
+- **Fonts** (Fraunces, Figtree, Gentium Book Plus) are loaded from Google Fonts at run time under the SIL Open Font License 1.1.
