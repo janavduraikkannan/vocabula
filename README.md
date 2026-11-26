@@ -11,7 +11,7 @@ Live at https://janavduraikkannan.github.io/vocabula/
   - **Cram Mode:** each word repeats until rated 5 three times in a row. Finished words return in spaced reviews after the next round, then 2, 4 and 8 rounds later, each until rated 5. Then a test of shuffled groups, finished when a whole group is rated 5 on the first try. Temporary (not remembered); ratings still count as reviews.
   - **Review Mode:** every word once in a random order; a word rated below 5 comes straight back until it gets a 5, and the session ends when every word has been rated 5. No three-in-a-row and no extra review. Temporary (not remembered); ratings still count as reviews.
   - **Legacy:** the first version's card-counting scheduler, written for this site.
-  - **SM-2:** Woźniak's 1990 description and SuperMemo 2 plug-in code, including the same-day repeat of anything graded below 4.
+  - **SM-2:** follows the algorithm as published in Woźniak's 1990 description, including the same-day repeat of anything graded below 4.
   - **Anki SM-2:** rebuilt from Anki's `rslib/src/scheduler/states` with Anki's default deck options and review fuzz (no load balancer).
   - **Ebisu v2:** [ebisu.js](https://github.com/fasiha/ebisu.js) 2.1.3 (public domain, `vendor/`), `defaultModel(24)` hours.
   - **FSRS-7:** ported from [fsrs-rs](https://github.com/open-spaced-repetition/fsrs-rs) `model_v7.rs` with its 34 default weights; checked against haskell-fsrs's reference (states agree to 1e-14).

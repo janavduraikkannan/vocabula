@@ -1,3 +1,4 @@
+/* NOT covered by this repository's AGPL-3.0 license: the license of these weights is unclear. See vendor/NOTICE.md. */
 /* Pretrained GRU and LSTM weights from open-spaced-repetition/srs-benchmark (pretrain/), extracted from
    GRU-short-secs_pretrain.pth and LSTM-short-secs-duration_pretrain.pth (pretrained on 100 users with Reptile,
    on fractional-day intervals including same-day reviews). */

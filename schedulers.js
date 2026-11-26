@@ -40,7 +40,7 @@ function seeded(id,n){ // a repeatable 0-1 number per card and review, so replay
 }
 
 /* ---------- SM-2: Woźniak (1990), "Application of a computer to improve the results obtained in working with
-   the SuperMemo method", and his SuperMemo 2 plug-in source code (Repetition procedure).
+   the SuperMemo method". The code follows the algorithm as published there.
    Interval after a pass: 1 day, then 6 days, then round(previous interval × E-Factor), using the E-Factor from
    before this repetition. A grade below 3 restarts the intervals. The E-Factor is then updated by
    EF + (0.1 - (5-q)(0.08 + (5-q)·0.02)), never below 1.3. Step 7: at the end of a day's session, items graded
