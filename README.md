@@ -29,7 +29,7 @@ Files: `index.html` (the page), `css/vocabula.css` (styles), `app.js` (screens, 
 ## Credits
 
 - Icons: [game-icons.net](https://game-icons.net) (CC BY 3.0): centurion helmet and Greek temple by Delapouite, scroll by Lorc (see `img/CREDITS.md`).
-- SM-2 algorithm by Piotr Woźniak, SuperMemo World (supermemo.com).
+- Algorithm SM-2, (C) Copyright SuperMemo World, 1991. <https://www.supermemo.com> · <https://www.supermemo.eu>. Credit to Piotr Woźniak and the authors of SuperMemo. Vocābula maps its 1–5 buttons onto SM-2's 0–5 grades and rounds due times to calendar days (4 am rollover); the algorithm is otherwise as published.
 - Fēlix art comes from [Verba](https://github.com/janavduraikkannan/verba).
 - Scheduling algorithms and libraries are credited above and in `vendor/NOTICE.md`.
 

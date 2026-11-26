@@ -11,4 +11,10 @@ Code in `../schedulers.js` that was ported from other projects keeps their licen
 - **FSRS-7** from [fsrs-rs](https://github.com/open-spaced-repetition/fsrs-rs): BSD 3-Clause, copyright 2023 Open Spaced Repetition (`fsrs-rs-LICENSE.txt`).
 - **Anki SM-2** from [Anki](https://github.com/ankitects/anki): AGPL-3.0-or-later.
 - **Duolingo's Leitner and Pimsleur baselines** from [duolingo/halflife-regression](https://github.com/duolingo/halflife-regression) (`experiment.py`): MIT, copyright 2016 Duolingo Inc. (`halflife-regression-LICENSE.txt`). The MIT license is stated in that repository's `LICENSE.md`, its README and the header of `experiment.py`.
-- **SM-2** follows Piotr Woźniak's 1990 article "Application of a computer to improve the results obtained in working with the SuperMemo method" and his SuperMemo 2 plug-in source code. The SM-2 algorithm is copyright SuperMemo World (supermemo.com), which has said it permits use of SM-2 in other software provided its copyright note is kept. Credit: SM-2 algorithm by Piotr Woźniak, SuperMemo World.
+- **SM-2** follows Piotr Woźniak's 1990 article "Application of a computer to improve the results obtained in working with the SuperMemo method". SuperMemo World's policy ([Licensing SuperMemo Algorithm](https://supermemopedia.com/wiki/Licensing_SuperMemo_Algorithm)) says SM-2 needs no licence, only this copyright note and a prominent credit to the authors of SuperMemo:
+
+      Algorithm SM-2, (C) Copyright SuperMemo World, 1991.
+      https://www.supermemo.com
+      https://www.supermemo.eu
+
+  The note appears in this repository's README, in the SM-2 panel in the app, and in the header comment of `schedulers.js`. The SuperMemo 2 plug-in source code (Delphi) carries no licence or copyright line, so no code from it may be copied. `schedulers.js` cites it as a reference, so the SM-2 function should be kept as a fresh JavaScript implementation of the published algorithm. The notice wording and the policy were read by a second reader from search-engine copies; confirm them against the SuperMemopedia page before release.

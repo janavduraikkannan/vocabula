@@ -44,7 +44,13 @@ function seeded(id,n){ // a repeatable 0-1 number per card and review, so replay
    Interval after a pass: 1 day, then 6 days, then round(previous interval × E-Factor), using the E-Factor from
    before this repetition. A grade below 3 restarts the intervals. The E-Factor is then updated by
    EF + (0.1 - (5-q)(0.08 + (5-q)·0.02)), never below 1.3. Step 7: at the end of a day's session, items graded
-   below 4 are repeated again until they score at least 4. ---------- */
+   below 4 are repeated again until they score at least 4.
+
+   Algorithm SM-2, (C) Copyright SuperMemo World, 1991.
+   https://www.supermemo.com
+   https://www.supermemo.eu
+   Vocābula's changes: its five 1-5 buttons are mapped onto SM-2's 0-5 grades (1 = 0, 2 = 2, 3 = 3, 4 = 4, 5 = 5),
+   and due times are rounded to calendar days with a 4 am rollover. The algorithm is otherwise as published. ---------- */
 function sm2(log){
   var rep=0, I=0, EF=2.5, day=null, redo=false;
   log.forEach(function(e){
