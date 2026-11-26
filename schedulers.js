@@ -9,15 +9,16 @@
 
    Vocābula's 1-5 buttons ("not at all", "barely", "somewhat", "mostly", "perfectly") map onto each source's grades:
    - pass/fail methods: 1-2 = forgot, 3-5 = remembered;
-   - four-button methods (Anki, FSRS): 1-2 = Again, 3 = Hard, 4 = Good, 5 = Easy;
+   - four-button methods (Anki, FSRS, LSTM, GRU): 1-2 = Again, 3 = Hard, 4 = Good, 5 = Easy;
    - SM-2's 0-5 scale: 1 = 0 (blackout), 2 = 2, 3 = 3, 4 = 4, 5 = 5.
-   Methods that only predict recall (Ebisu, Duolingo's Leitner and Pimsleur) schedule a card when its
+   Methods that only predict recall (Ebisu, Duolingo's Leitner and Pimsleur, LSTM, GRU) schedule a card when its
    predicted recall falls to 90%, the same target FSRS uses. */
 (function(root){
 "use strict";
 var isNode=typeof module!=="undefined";
 var ebisu=isNode?(function(){ var src=require("fs").readFileSync(require("path").join(__dirname,"vendor/ebisu-2.1.3.min.js"),"utf8");
   return new Function(src+";return ebisu;")(); })():root.ebisu;
+var NNW=isNode?require("./vendor/srs-benchmark-weights.js"):root.SRS_BENCHMARK_WEIGHTS;
 
 var MIN=6e4, HOUR=36e5, DAY=864e5, TARGET=0.9;
 var PASS=function(r){return r>=3;};
@@ -224,6 +225,60 @@ function pimsleur(log){
   return {due:log[log.length-1].t+Math.pow(5,log.length)*1000,info:{step:log.length}};
 }
 
+/* ---------- LSTM and GRU: open-spaced-repetition/srs-benchmark, models/lstm.py and models/gru.py, with the
+   pretrained weights in pretrain/ (vendor/srs-benchmark-weights.js). Each past review feeds in the days since
+   the previous one, the rating (1-4), and for the LSTM how long you took; the network outputs a mixture of power
+   forgetting curves, and the card is due when that curve reaches 90%. Same maths as PyTorch: LayerNorm eps 1e-5,
+   LSTM gates i,f,g,o and GRU gates r,z,n. ---------- */
+var silu=function(x){return x/(1+Math.exp(-x));}, sig=function(x){return 1/(1+Math.exp(-x));};
+function lin(W,b,x){ return W.map(function(row,i){ var s=b?b[i]:0; for(var j=0;j<row.length;j++) s+=row[j]*x[j]; return s; }); }
+function ln(x,w,b){ var n=x.length,m=0,v=0,i; for(i=0;i<n;i++) m+=x[i]; m/=n; for(i=0;i<n;i++) v+=(x[i]-m)*(x[i]-m); v/=n;
+  var sd=Math.sqrt(v+1e-5); return x.map(function(xi,k){ return (xi-m)/sd*w[k]+(b?b[k]:0); }); }
+function lstmSeq(P,pre,xs){ var H=P[pre+"weight_hh_l0"][0].length, h=new Array(H).fill(0), c=new Array(H).fill(0);
+  return xs.map(function(x){ var a=lin(P[pre+"weight_ih_l0"],P[pre+"bias_ih_l0"],x), b2=lin(P[pre+"weight_hh_l0"],P[pre+"bias_hh_l0"],h);
+    var z=a.map(function(v,k){return v+b2[k];});
+    var ig=z.slice(0,H).map(sig), fg=z.slice(H,2*H).map(sig), gg=z.slice(2*H,3*H).map(Math.tanh), og=z.slice(3*H).map(sig);
+    c=c.map(function(ck,k){return fg[k]*ck+ig[k]*gg[k];}); h=c.map(function(ck,k){return og[k]*Math.tanh(ck);}); return h; }); }
+function gruSeq(P,pre,xs){ var H=P[pre+"weight_hh_l0"][0].length, h=new Array(H).fill(0);
+  return xs.map(function(x){ var a=lin(P[pre+"weight_ih_l0"],P[pre+"bias_ih_l0"],x), b2=lin(P[pre+"weight_hh_l0"],P[pre+"bias_hh_l0"],h);
+    var r=a.slice(0,H).map(function(v,k){return sig(v+b2[k]);}), z=a.slice(H,2*H).map(function(v,k){return sig(v+b2[H+k]);});
+    var n=a.slice(2*H).map(function(v,k){return Math.tanh(v+r[k]*b2[2*H+k]);});
+    h=n.map(function(nk,k){return (1-z[k])*nk+z[k]*h[k];}); return h; }); }
+function nnInputs(log,P,withDur){
+  return log.map(function(e,i){
+    var dt=i?Math.max(0,(e.t-log[i-1].t)/DAY):0, main=[Math.log(1e-5+dt)];
+    if(withDur) main.push(Math.log(Math.min(Math.max(e.d||0,100),60000)));
+    main=main.map(function(v,k){return (v-P.input_mean[k])/P.input_std[k];});
+    var oh=[0,0,0,0]; oh[Math.max(ANKI[e.r],1)-1]=1; return main.concat(oh); });
+}
+function heads(P,x){ var w=lin(P["w_fc.weight"],P["w_fc.bias"],x), mx=Math.max.apply(null,w), ex=w.map(function(v){return Math.exp(v-mx);}), se=ex.reduce(function(a,b){return a+b;},0);
+  return {w:ex.map(function(v){return v/se;}),
+    s:lin(P["s_fc.weight"],P["s_fc.bias"],x).map(function(v){return Math.exp(clamp(v,-25,25));}),
+    d:lin(P["d_fc.weight"],P["d_fc.bias"],x).map(function(v){return Math.exp(clamp(v,-25,25));})}; }
+function nnCurve(o){ return function(t){ var s=0; for(var k=0;k<o.w.length;k++) s+=o.w[k]*Math.pow(1+t/(1e-7+o.s[k]),-o.d[k]); return (1-1e-7)*s; }; }
+function lstmOut(log){ var P=NNW.lstm, xs=nnInputs(log,P,true);
+  xs=xs.map(function(x){ var y=ln(lin(P["process.0.weight"],P["process.0.bias"],x).map(silu),P["process.2.weight"]);
+    return lin(P["process.3.weight"],P["process.3.bias"],y).map(silu); });
+  var a=lstmSeq(P,"process.5.module.1.module.",xs.map(function(x){return ln(x,P["process.5.module.0.weight"]);}));
+  xs=xs.map(function(x,i){return x.map(function(v,k){return v+a[i][k];});});
+  var b=lstmSeq(P,"process.6.module.1.module.",xs.map(function(x){return ln(x,P["process.6.module.0.weight"],P["process.6.module.0.bias"]);}));
+  xs=xs.map(function(x,i){return x.map(function(v,k){return v+b[i][k];});});
+  xs=xs.map(function(x){ var y=ln(x,P["process.7.module.0.weight"]); y=lin(P["process.7.module.1.weight"],P["process.7.module.1.bias"],y).map(silu);
+    y=ln(y,P["process.7.module.3.weight"]); y=lin(P["process.7.module.4.weight"],P["process.7.module.4.bias"],y).map(silu);
+    return x.map(function(v,k){return v+y[k];}); });
+  var last=xs[xs.length-1]; last=lin(P["process.9.weight"],P["process.9.bias"],ln(last,P["process.8.weight"])).map(silu);
+  return heads(P,last); }
+function gruOut(log){ var P=NNW.gru, xs=nnInputs(log,P,false);
+  xs=xs.map(function(x){ return ln(lin(P["process.0.weight"],P["process.0.bias"],x).map(silu),P["process.2.weight"]); });
+  var hs=gruSeq(P,"process.3.module.",xs), last=ln(hs[hs.length-1],P["process.4.weight"]);
+  last=ln(lin(P["process.5.weight"],P["process.5.bias"],last).map(silu),P["process.7.weight"]);
+  return heads(P,last); }
+function nnSched(log,which){
+  if(!log.length) return null;
+  var o=which==="lstm"?lstmOut(log):gruOut(log);
+  return {due:log[log.length-1].t+timeTo90(nnCurve(o))*DAY,info:o};
+}
+
 /* ---------- Leitner (1972), "So lernt man lernen": the learning box. Five compartments 1, 2, 5, 8 and 14 cm deep;
    a compartment is worked through when it is full. Known: the card moves on one compartment (out of the box
    after the fifth). Not known: back to compartment 1. New cards go into compartment 1. The book itself isn't
@@ -280,6 +335,7 @@ function masteryOf(method,log,id,now){ // -> {cat, score} for a seen card
     case "ebisu": r=ebisu.predictRecall(ebisuSched(log).info.model,Math.max(days*24,1e-9),true); break;
     case "fsrs7": r=f7Curve(W7,days,fsrs7(log).info); break;
     case "leitner-duo": case "pimsleur-duo": r=Math.pow(2,-days/duoSched(log,method==="leitner-duo"?"leitner":"pimsleur").info.halflife); break;
+    case "lstm": case "gru": r=nnCurve(method==="lstm"?lstmOut(log):gruOut(log))(days); break;
     default: return null;
   }
   return {cat:recallCat(r),score:r};
@@ -294,10 +350,12 @@ var METHODS={
   "leitner":   {name:"Leitner",            box:true},
   "leitner-duo":{name:"Leitner (Duolingo)",sched:function(log){return duoSched(log,"leitner");}},
   "pimsleur":  {name:"Pimsleur",           sched:function(log){return pimsleur(log);}},
-  "pimsleur-duo":{name:"Pimsleur (Duolingo)",sched:function(log){return duoSched(log,"pimsleur");}}
+  "pimsleur-duo":{name:"Pimsleur (Duolingo)",sched:function(log){return duoSched(log,"pimsleur");}},
+  "lstm":      {name:"LSTM",               sched:function(log){return nnSched(log,"lstm");}},
+  "gru":       {name:"GRU",                sched:function(log){return nnSched(log,"gru");}}
 };
 var API={METHODS:METHODS,MASTERY:MASTERY,masteryOf:masteryOf,masteryKind:masteryKind,recallCat:recallCat,lbUpdate:lbUpdate,lbPick:lbPick,lbCaps:lbCaps,dayNum:dayNum,
   _test:{sm2:sm2,ankiSm2:ankiSm2,ebisuSched:ebisuSched,fsrs7:fsrs7,f7Curve:f7Curve,f7Next:f7Next,f7Init:f7Init,f7Interval:f7Interval,W7:W7,
-    duoSched:duoSched,pimsleur:pimsleur,timeTo90:timeTo90}};
+    duoSched:duoSched,pimsleur:pimsleur,lstmOut:lstmOut,gruOut:gruOut,nnCurve:nnCurve,timeTo90:timeTo90}};
 if(isNode) module.exports=API; else root.SCHED=API;
 })(typeof globalThis!=="undefined"?globalThis:this);
