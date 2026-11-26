@@ -230,13 +230,7 @@ var MINFO=[
   '<p><b>Why.</b> It’s the schedule behind the Pimsleur audio courses, built for fast repetition just after you first learn a word.</p>'},
  {id:"pimsleur-duo",label:"Pimsleur (Duolingo)",html:
   '<p><b>What it does.</b> Duolingo’s version of Pimsleur’s schedule, from the same '+L("https://github.com/duolingo/halflife-regression","research code")+'. Each word’s half-life is 2 to the power of (2.35 × reviews − 16.46) days, kept between 15 minutes and 9 months, and the word is due when predicted recall falls to 90%. Like the original, it counts reviews, not whether you were right.</p>'+
-  '<p><b>Why.</b> It’s one of the baselines in Duolingo’s research, which measured how well each schedule predicts forgetting.</p>'},
- {id:"lstm",label:"LSTM",html:
-  '<p><b>What it does.</b> A neural network from the '+L("https://github.com/open-spaced-repetition/srs-benchmark","open benchmark")+' in the research, with the weights it was pretrained with on 100 Anki users. It reads a word’s whole history (the time between reviews, each rating, and how long you took to answer) and predicts a forgetting curve; the word is due when that curve reaches 90%.</p>'+
-  '<p><b>Why.</b> On the benchmark it predicts recall better than every FSRS version, but only after being fine-tuned to each user. Here it runs on the pretrained weights alone, which the benchmark doesn’t score separately. It’s also hard to see why it makes each choice.</p>'},
- {id:"gru",label:"GRU",html:
-  '<p><b>What it does.</b> A much smaller neural network (503 numbers against the LSTM’s 8,869) from the same '+L("https://github.com/open-spaced-repetition/srs-benchmark","benchmark")+', pretrained the same way. It uses the time between reviews and each rating, but not how long you took, and the word is due when its predicted forgetting curve reaches 90%.</p>'+
-  '<p><b>Why.</b> On the benchmark it predicts recall about as well as the LSTM at a fraction of the size, again after fine-tuning to each user; here it runs on the pretrained weights alone.</p>'}
+  '<p><b>Why.</b> It’s one of the baselines in Duolingo’s research, which measured how well each schedule predicts forgetting.</p>'}
 ];
 var openInfo=null;
 function renderMethods(){
