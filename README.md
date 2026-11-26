@@ -29,6 +29,7 @@ Files: `index.html` (the page), `css/vocabula.css` (styles), `app.js` (screens, 
 ## Credits
 
 - Icons: [game-icons.net](https://game-icons.net) (CC BY 3.0): centurion helmet and Greek temple by Delapouite, scroll by Lorc (see `img/CREDITS.md`).
+- SM-2 algorithm by Piotr Woźniak, SuperMemo World (supermemo.com).
 - Fēlix art comes from [Verba](https://github.com/janavduraikkannan/verba).
 - Scheduling algorithms and libraries are credited above and in `vendor/NOTICE.md`.
 
